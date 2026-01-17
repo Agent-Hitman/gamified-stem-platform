@@ -1,0 +1,34 @@
+[
+  {
+    "id": "data_scientist",
+    "title": "Data Scientist",
+    "required_skills": {"algebra": 0.7, "logic": 0.8, "arithmetic": 0.6},
+    "description": "Works with data, statistics, ML models.",
+    "qualifications": ["BSc/BTech in CS/Math/Stats", "ML foundations", "Projects"],
+    "growth": "High demand in analytics, ML, AI."
+  },
+  {
+    "id": "mechanical_engineer",
+    "title": "Mechanical Engineer",
+    "required_skills": {"physics": 0.8, "geometry": 0.6, "algebra": 0.5},
+    "description": "Designs mechanical systems and machines.",
+    "qualifications": ["BTech Mechanical", "Thermodynamics", "Mechanics"],
+    "growth": "Strong in automotive, manufacturing, robotics."
+  },
+  {
+    "id": "doctor",
+    "title": "Doctor (MBBS Path)",
+    "required_skills": {"biology": 0.9, "chemistry": 0.8, "logic": 0.5},
+    "description": "Healthcare diagnosis and treatment.",
+    "qualifications": ["MBBS", "NEET preparation", "Clinical training"],
+    "growth": "Stable, high-impact career."
+  },
+  {
+    "id": "civil_engineer",
+    "title": "Civil Engineer",
+    "required_skills": {"geometry": 0.8, "physics": 0.6, "arithmetic": 0.5},
+    "description": "Builds structures, roads, infrastructure.",
+    "qualifications": ["BTech Civil", "Structures", "Surveying"],
+    "growth": "Strong in construction and infrastructure."
+  }
+]

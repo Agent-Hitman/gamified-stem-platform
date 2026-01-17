@@ -1,0 +1,19 @@
+
+{
+  "dimensions": ["algebra", "geometry", "arithmetic", "physics", "chemistry", "biology", "logic"],
+  "topic_to_dim": {
+    "Linear Equations": "algebra",
+    "Quadratic Equations": "algebra",
+    "Triangles": "geometry",
+    "Circles": "geometry",
+    "Fractions": "arithmetic",
+    "Percentages": "arithmetic",
+    "Newton Laws": "physics",
+    "Electricity": "physics",
+    "Periodic Table": "chemistry",
+    "Acids Bases": "chemistry",
+    "Cell Biology": "biology",
+    "Genetics": "biology",
+    "Puzzles": "logic"
+  }
+}
