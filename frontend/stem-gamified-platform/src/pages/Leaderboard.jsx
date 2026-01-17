@@ -1,11 +1,14 @@
+import { useEffect, useState } from "react";
+import { api } from "../services/api";
+
 export default function Leaderboard() {
-  // Temporary mock users (later backend will replace this)
-  const users = [
-    { name: "You", xp: Number(localStorage.getItem("quizXP")) || 0 },
-    { name: "Student A", xp: 120 },
-    { name: "Student B", xp: 80 },
-    { name: "Student C", xp: 40 },
-  ];
+  const [users, setUsers] = useState([]);
+
+  useEffect(() => {
+    api.get("/leaderboard")
+      .then((res) => setUsers(res.data))
+      .catch((err) => console.error(err));
+  }, []);
 
   // Sort by XP descending
   const sorted = [...users].sort((a, b) => b.xp - a.xp);
@@ -14,13 +17,17 @@ export default function Leaderboard() {
     <div>
       <h2>Leaderboard</h2>
 
-      <ol>
-        {sorted.map((user, index) => (
-          <li key={index}>
-            {user.name} — {user.xp} XP
-          </li>
-        ))}
-      </ol>
+      {sorted.length === 0 ? (
+        <p>No leaderboard data yet</p>
+      ) : (
+        <ol>
+          {sorted.map((user, index) => (
+            <li key={index}>
+              {user.user} — {user.xp} XP
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   );
 }

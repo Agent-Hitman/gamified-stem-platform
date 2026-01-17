@@ -2,6 +2,7 @@ import { useState } from "react";
 import { questions } from "../data/questions";
 import { calculateXP, getLevel, getBadges } from "../utils/gamification";
 import { useNavigate } from "react-router-dom";
+import { api } from "../services/api";
 
 
 export default function Quiz() {
@@ -32,6 +33,13 @@ export default function Quiz() {
     localStorage.setItem("quizScore", newScore);
     localStorage.setItem("quizXP", earnedXP);
     navigate("/analytics");
+    api.post("/quiz/submit", {
+      user: "You",
+      score: newScore,
+      xp: earnedXP,
+      topic: q.topic,
+    });
+
 
   }
 };

@@ -1,39 +1,43 @@
-import { Bar } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
+import { useEffect, useState } from "react";
+import { api } from "../services/api";
 
 export default function Analytics() {
-  const data = {
-    labels: ["Algebra", "Physics"],
-    datasets: [
-      {
-        label: "Score",
-        data: [localStorage.getItem("quizScore") || 0, 0],
-        backgroundColor: "rgba(75, 192, 192, 0.6)",
-      },
-    ],
-  };
+  const [results, setResults] = useState([]);
+
+  useEffect(() => {
+    api.get("/analytics")
+      .then((res) => setResults(res.data))
+      .catch((err) => console.error(err));
+  }, []);
 
   return (
     <div>
       <h2>Performance Analytics</h2>
-      <Bar data={data} />
+
+      {results.length === 0 ? (
+        <p>No quiz data available yet</p>
+      ) : (
+        <table border="1" cellPadding="8">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Topic</th>
+              <th>Score</th>
+              <th>XP</th>
+            </tr>
+          </thead>
+          <tbody>
+            {results.map((r, index) => (
+              <tr key={index}>
+                <td>{r.user}</td>
+                <td>{r.topic}</td>
+                <td>{r.score}</td>
+                <td>{r.xp}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
