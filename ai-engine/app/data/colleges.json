@@ -1,0 +1,6 @@
+[
+  {"career_id":"doctor","colleges":["Government Medical College (example)","AIIMS (example)"]},
+  {"career_id":"data_scientist","colleges":["IIT (example)","NIT (example)","Local University (example)"]},
+  {"career_id":"mechanical_engineer","colleges":["IIT (example)","NIT (example)"]},
+  {"career_id":"civil_engineer","colleges":["IIT (example)","NIT (example)"]}
+]

@@ -1,0 +1,6 @@
+[
+  {"career_id":"data_scientist","courses":["Python for Data", "Statistics Basics", "Intro to ML"]},
+  {"career_id":"mechanical_engineer","courses":["Engineering Mechanics", "Thermodynamics", "CAD Basics"]},
+  {"career_id":"doctor","courses":["NEET Biology", "NEET Chemistry", "Human Physiology"]},
+  {"career_id":"civil_engineer","courses":["Strength of Materials", "Structural Analysis", "AutoCAD Civil"]}
+]
