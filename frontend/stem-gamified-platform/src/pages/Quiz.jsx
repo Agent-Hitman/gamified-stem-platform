@@ -30,6 +30,7 @@ export default function Quiz() {
     setLevel(getLevel(earnedXP));
     setBadges(getBadges(newScore));
     localStorage.setItem("quizScore", newScore);
+    localStorage.setItem("quizXP", earnedXP);
     navigate("/analytics");
 
   }
