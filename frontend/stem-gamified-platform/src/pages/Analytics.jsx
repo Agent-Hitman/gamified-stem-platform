@@ -11,33 +11,36 @@ export default function Analytics() {
   }, []);
 
   return (
-    <div>
-      <h2>Performance Analytics</h2>
+    <div className="container">
+      <div className="card">
+        <h2>Performance Analytics</h2>
 
-      {results.length === 0 ? (
-        <p>No quiz data available yet</p>
-      ) : (
-        <table border="1" cellPadding="8">
-          <thead>
-            <tr>
-              <th>User</th>
-              <th>Topic</th>
-              <th>Score</th>
-              <th>XP</th>
-            </tr>
-          </thead>
-          <tbody>
-            {results.map((r, index) => (
-              <tr key={index}>
-                <td>{r.user}</td>
-                <td>{r.topic}</td>
-                <td>{r.score}</td>
-                <td>{r.xp}</td>
+        {results.length === 0 ? (
+          <p>No quiz data available yet</p>
+        ) : (
+          <table width="100%" border="1" cellPadding="10">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Topic</th>
+                <th>Score</th>
+                <th>XP</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+            </thead>
+            <tbody>
+              {results.map((r, index) => (
+                <tr key={index}>
+                  <td>{r.user}</td>
+                  <td>{r.topic}</td>
+                  <td>{r.score}</td>
+                  <td>{r.xp}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
+
 }

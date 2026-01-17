@@ -46,19 +46,24 @@ export default function Quiz() {
 
 
   return (
-    <div>
-      <h2>{q.topic}</h2>
-      <h3>{q.question}</h3>
+    <div className="container">
+      <div className="card">
+        <h2>{q.topic}</h2>
+        <h3>{q.question}</h3>
 
-      {q.options.map((opt) => (
-        <button key={opt} onClick={() => selectAnswer(opt)}>
-          {opt}
-        </button>
-      ))}
+        {q.options.map((opt) => (
+          <button key={opt} onClick={() => selectAnswer(opt)}>
+            {opt}
+          </button>
+        ))}
 
-      <p>Score: {score}</p>
-      <p>XP: {xp} | Level: {level} | Badges: {badges.join(", ")}</p>
+        <p><strong>Score:</strong> {score}</p>
+        <p>
+          <strong>XP:</strong> {xp} | <strong>Level:</strong> {level}
+        </p>
+        <p><strong>Badges:</strong> {badges.join(", ") || "None"}</p>
+      </div>
     </div>
-    
   );
+
 }

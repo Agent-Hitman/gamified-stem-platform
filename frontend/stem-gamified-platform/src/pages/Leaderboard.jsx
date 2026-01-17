@@ -14,20 +14,23 @@ export default function Leaderboard() {
   const sorted = [...users].sort((a, b) => b.xp - a.xp);
 
   return (
-    <div>
-      <h2>Leaderboard</h2>
+    <div className="container">
+        <div className="card">
+        <h2>Leaderboard</h2>
 
-      {sorted.length === 0 ? (
-        <p>No leaderboard data yet</p>
-      ) : (
-        <ol>
-          {sorted.map((user, index) => (
-            <li key={index}>
-              {user.user} — {user.xp} XP
-            </li>
-          ))}
-        </ol>
-      )}
+        {sorted.length === 0 ? (
+            <p>No leaderboard data yet</p>
+        ) : (
+            <ol>
+            {sorted.map((user, index) => (
+                <li key={index}>
+                <strong>{user.user}</strong> — {user.xp} XP
+                </li>
+            ))}
+            </ol>
+        )}
+        </div>
     </div>
-  );
+    );
+
 }
