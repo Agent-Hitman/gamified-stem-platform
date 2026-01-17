@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { questions } from "../data/questions";
 import { calculateXP, getLevel, getBadges } from "../utils/gamification";
+import { useNavigate } from "react-router-dom";
+
 
 export default function Quiz() {
   const [xp, setXP] = useState(0);
   const [level, setLevel] = useState("");
   const [badges, setBadges] = useState([]);
-
+  const navigate = useNavigate();
   const [current, setCurrent] = useState(0);
   const [score, setScore] = useState(0);
 
@@ -27,6 +29,9 @@ export default function Quiz() {
     setXP(earnedXP);
     setLevel(getLevel(earnedXP));
     setBadges(getBadges(newScore));
+    localStorage.setItem("quizScore", newScore);
+    navigate("/analytics");
+
   }
 };
 
