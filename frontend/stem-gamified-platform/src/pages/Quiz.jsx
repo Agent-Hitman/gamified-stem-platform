@@ -13,24 +13,23 @@ export default function Quiz() {
   const q = questions[current];
 
   const selectAnswer = (option) => {
-    if (option === q.correct) {
-      setScore(score + 10);
-    }
+  let newScore = score;
 
-    else {
-      const earnedXP = calculateXP(newScore);
-      setXP(earnedXP);
-      setLevel(getLevel(earnedXP));
-      setBadges(getBadges(newScore));
-    }
+  if (option === q.correct) {
+    newScore += 10;
+    setScore(newScore);
+  }
 
+  if (current + 1 < questions.length) {
+    setCurrent(current + 1);
+  } else {
+    const earnedXP = calculateXP(newScore);
+    setXP(earnedXP);
+    setLevel(getLevel(earnedXP));
+    setBadges(getBadges(newScore));
+  }
+};
 
-    if (current + 1 < questions.length) {
-      setCurrent(current + 1);
-    } else {
-      alert(`Quiz finished! Score: ${score + (option === q.correct ? 10 : 0)}`);
-    }
-  };
 
   return (
     <div>
