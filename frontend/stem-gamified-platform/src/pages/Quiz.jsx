@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import he from 'he'; // Ensure you have this or use the simple decoder below if getting errors
+import { useUser } from "@clerk/clerk-react"; // <--- 1. Import Clerk
+import he from 'he'; 
 
 // Safety Helper: Decodes HTML like "Don&039;t" -> "Don't"
 const decodeHTML = (html) => {
@@ -11,6 +12,7 @@ const decodeHTML = (html) => {
 
 export default function Quiz() {
   const navigate = useNavigate();
+  const { user } = useUser(); // <--- 2. Get User Details
   
   const [questions, setQuestions] = useState([]); 
   const [loading, setLoading] = useState(true); 
@@ -33,12 +35,10 @@ export default function Quiz() {
         if (!res.ok) throw new Error("AI Failed");
         const data = await res.json();
         
-        // Use the API data directly if formatted correctly, or map it here
-        // Assuming your API returns the list directly based on your previous fixes:
         const formattedQuestions = data.map((q, index) => ({
           id: index,
           topic: q.topic || "Science",
-          question: q.question, // decodeHTML(q.question) if needed
+          question: q.question, 
           options: q.options,
           correctAnswer: q.correctAnswer,
           difficulty: q.difficulty || "Medium"
@@ -47,7 +47,6 @@ export default function Quiz() {
         setQuestions(formattedQuestions);
       } catch (err) {
         console.error("Failed to load questions, using backup...", err);
-        // FALLBACK DATA (Prevents white screen if API fails)
         setQuestions([
           {
             id: 1, topic: "Physics", question: "What is the speed of light?", 
@@ -73,7 +72,6 @@ export default function Quiz() {
   }, [timer, showResult, loading, questions]);
 
   const handleAnswer = (selectedOption) => {
-    // Safety Check: Ensure question exists
     if (!questions[currentQ]) return;
     const isCorrect = selectedOption === questions[currentQ].correctAnswer;
     handleNext(isCorrect);
@@ -90,20 +88,26 @@ export default function Quiz() {
     };
     
     setHistory([...history, record]);
-    if (isCorrect) setScore(score + 100);
+    
+    // Calculate intermediate score (for state)
+    let newScore = score;
+    if (isCorrect) {
+        newScore = score + 100;
+        setScore(newScore);
+    }
 
     if (currentQ < questions.length - 1) {
       setCurrentQ(currentQ + 1);
       setTimer(15);
     } else {
-      finishQuiz(isCorrect);
+      finishQuiz(isCorrect, newScore); // Pass the final calculated score
     }
   };
 
-  const finishQuiz = (lastCorrect) => {
+  const finishQuiz = async (lastCorrect, finalScore) => {
     setShowResult(true);
     
-    // Save to LocalStorage
+    // --- 3. SAVE TO LOCAL STORAGE ---
     const existingData = JSON.parse(localStorage.getItem('quizHistory') || '[]');
     const currentQuestion = questions[currentQ];
     
@@ -117,15 +121,33 @@ export default function Quiz() {
     const merged = [...existingData, ...newSessionData];
     localStorage.setItem('quizHistory', JSON.stringify(merged));
     
-    // Calculate new total XP
     const currentXP = parseInt(localStorage.getItem('userXP') || '0');
-    const pointsEarned = score + (lastCorrect ? 100 : 0);
-    localStorage.setItem('userXP', (currentXP + pointsEarned).toString());
+    localStorage.setItem('userXP', (currentXP + finalScore).toString());
+
+    // --- 4. SEND TO MONGODB (BACKEND) ---
+    if (user) {
+        try {
+            console.log("🚀 Sending score to backend...");
+            await fetch('http://127.0.0.1:8000/api/save-score', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: user.id,
+                    username: user.fullName || user.firstName,
+                    email: user.primaryEmailAddress?.emailAddress,
+                    score: finalScore,
+                    topic: questions[0]?.topic || "General"
+                }),
+            });
+            console.log("✅ Score saved to MongoDB!");
+        } catch (error) {
+            console.error("❌ Error saving score to backend:", error);
+        }
+    }
   };
 
-  // --- 🛑 CRITICAL FIX: RENDERING SAFETY CHECKS ---
+  // --- RENDER HELPERS ---
 
-  // 1. Show Loading Screen FIRST (Before trying to access 'q')
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
@@ -135,7 +157,6 @@ export default function Quiz() {
     );
   }
 
-  // 2. Show Result Screen
   if (showResult) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
@@ -163,15 +184,12 @@ export default function Quiz() {
     );
   }
 
-  // 3. Define 'q' ONLY after we know loading is done
   const q = questions[currentQ];
 
-  // 4. Extra Safety: If q is still undefined (e.g. API returned empty array), show error
   if (!q) {
     return <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">No questions available.</div>;
   }
 
-  // --- MAIN RENDER ---
   return (
     <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-4">
       
@@ -194,7 +212,10 @@ export default function Quiz() {
         </div>
 
         <div className="bg-slate-800/50 backdrop-blur-sm border border-white/5 p-8 rounded-3xl shadow-xl">
-          <h2 className="text-2xl font-bold mb-8 leading-relaxed">{q.question}</h2>
+          <h2 className="text-2xl font-bold mb-8 leading-relaxed">
+            {/* Optional: Use your decodeHTML helper here if questions have weird symbols */}
+            {decodeHTML(q.question)}
+          </h2>
           
           <div className="grid gap-4">
             {q.options.map((opt, idx) => (
@@ -207,7 +228,7 @@ export default function Quiz() {
                   <span className="bg-slate-800 group-hover:bg-indigo-500 w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold">
                     {['A', 'B', 'C', 'D'][idx]}
                   </span>
-                  <span className="font-medium">{opt}</span>
+                  <span className="font-medium">{decodeHTML(opt)}</span>
                 </div>
               </button>
             ))}
