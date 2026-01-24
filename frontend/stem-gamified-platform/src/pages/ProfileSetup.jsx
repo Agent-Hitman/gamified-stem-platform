@@ -1,4 +1,3 @@
-// src/pages/ProfileSetup.jsx
 import React, { useState, useEffect } from 'react';
 import { useUser } from "@clerk/clerk-react";
 import { useNavigate } from 'react-router-dom';
@@ -19,7 +18,7 @@ export default function ProfileSetup() {
     if (user) {
       setFormData({
         username: user.firstName || "",
-        email: user.primaryEmailAddress?.emailAddress || "", // Auto-fill Email
+        email: user.primaryEmailAddress?.emailAddress || "",
         grade: "9th Grade"
       });
     }
@@ -28,24 +27,22 @@ export default function ProfileSetup() {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // 1. Save to LocalStorage (so we can use it in the Quiz/Career agents)
+    // Save profile to LocalStorage
     localStorage.setItem("userProfile", JSON.stringify(formData));
     
-    // 2. (Optional) You can also send this to your MongoDB backend here if needed
-    
-    // 3. Navigate to the Quiz (or Dashboard)
-    navigate("/quiz"); 
+    // Redirect to Dashboard
+    navigate("/dashboard"); 
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-      <div className="bg-slate-800 p-8 rounded-2xl border border-white/10 shadow-2xl w-full max-w-md">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-2xl w-full max-w-md">
         
         {/* Header */}
         <div className="text-center mb-8">
           <div className="text-5xl mb-4">🚀</div>
-          <h1 className="text-2xl font-bold text-white">Setup Your Profile</h1>
-          <p className="text-slate-400 text-sm mt-2">Complete your mission data to begin.</p>
+          <h1 className="text-3xl font-bold text-gray-900">STEM Explorer</h1>
+          <p className="text-gray-500 text-sm mt-2">Your journey to science mastery begins here.</p>
         </div>
 
         {/* Form */}
@@ -53,12 +50,12 @@ export default function ProfileSetup() {
           
           {/* Username Field */}
           <div>
-            <label className="block text-purple-400 font-bold text-sm mb-2">USERNAME</label>
+            <label className="block text-gray-700 font-bold text-sm mb-2">Explorer Name</label>
             <input 
               type="text" 
               required
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500 transition"
-              placeholder="Enter your codename"
+              className="w-full bg-white border border-gray-300 rounded-xl p-3 text-gray-900 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition"
+              placeholder="e.g. Alex"
               value={formData.username}
               onChange={(e) => setFormData({...formData, username: e.target.value})}
             />
@@ -66,11 +63,11 @@ export default function ProfileSetup() {
 
           {/* Email Field */}
           <div>
-            <label className="block text-purple-400 font-bold text-sm mb-2">EMAIL ADDRESS</label>
+            <label className="block text-gray-700 font-bold text-sm mb-2">Email Address</label>
             <input 
               type="email" 
               required
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500 transition"
+              className="w-full bg-white border border-gray-300 rounded-xl p-3 text-gray-900 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition"
               value={formData.email}
               onChange={(e) => setFormData({...formData, email: e.target.value})}
             />
@@ -78,9 +75,9 @@ export default function ProfileSetup() {
 
           {/* Grade Dropdown */}
           <div>
-            <label className="block text-purple-400 font-bold text-sm mb-2">CURRENT GRADE</label>
+            <label className="block text-gray-700 font-bold text-sm mb-2">Current Grade</label>
             <select 
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500 transition"
+              className="w-full bg-white border border-gray-300 rounded-xl p-3 text-gray-900 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition"
               value={formData.grade}
               onChange={(e) => setFormData({...formData, grade: e.target.value})}
             >
@@ -93,12 +90,12 @@ export default function ProfileSetup() {
             </select>
           </div>
 
-          {/* Submit Button */}
+          {/* Submit Button - TEXT CHANGED HERE */}
           <button 
             type="submit"
-            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg transform hover:scale-[1.02] transition-all"
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-xl shadow-lg transform hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
           >
-            Start Mission ➔
+            Proceed ➔
           </button>
         </form>
 
