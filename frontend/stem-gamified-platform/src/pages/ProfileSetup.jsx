@@ -1,4 +1,3 @@
-// src/pages/ProfileSetup.jsx
 import React, { useState, useEffect } from 'react';
 import { useUser } from "@clerk/clerk-react";
 import { useNavigate } from 'react-router-dom';
@@ -7,80 +6,92 @@ export default function ProfileSetup() {
   const { user } = useUser();
   const navigate = useNavigate();
 
-  // State for the form
   const [formData, setFormData] = useState({
     username: "",
     email: "", 
     grade: "9th Grade"
   });
 
-  // Load defaults from Clerk when user loads
   useEffect(() => {
+    // 1. CHECK IF PROFILE ALREADY EXISTS
+    const savedProfile = localStorage.getItem("userProfile");
+    
+    if (savedProfile) {
+      // If found, skip setup and go straight to Dashboard
+      navigate("/dashboard");
+    }
+
+    // 2. If not, pre-fill data from Clerk
     if (user) {
       setFormData({
         username: user.firstName || "",
-        email: user.primaryEmailAddress?.emailAddress || "", // Auto-fill Email
+        email: user.primaryEmailAddress?.emailAddress || "",
         grade: "9th Grade"
       });
     }
-  }, [user]);
+  }, [user, navigate]); // Added navigate dependency
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => { // Make function async
     e.preventDefault();
     
-    // 1. Save to LocalStorage (so we can use it in the Quiz/Career agents)
+    // 1. Save to Local Storage (Keep this for fast UI access)
     localStorage.setItem("userProfile", JSON.stringify(formData));
+
+    // 2. SEND TO BACKEND (Initialize DB Entry)
+    if (user) {
+        try {
+            await fetch('http://127.0.0.1:8000/api/init-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: user.id, // Clerk ID
+                    username: formData.username,
+                    email: formData.email,
+                    grade: formData.grade
+                })
+            });
+        } catch (error) {
+            console.error("Failed to init user:", error);
+        }
+    }
     
-    // 2. (Optional) You can also send this to your MongoDB backend here if needed
-    
-    // 3. Navigate to the Quiz (or Dashboard)
-    navigate("/quiz"); 
+    // 3. Navigate
+    navigate("/dashboard"); 
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-      <div className="bg-slate-800 p-8 rounded-2xl border border-white/10 shadow-2xl w-full max-w-md">
-        
-        {/* Header */}
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-2xl w-full max-w-md">
         <div className="text-center mb-8">
           <div className="text-5xl mb-4">🚀</div>
-          <h1 className="text-2xl font-bold text-white">Setup Your Profile</h1>
-          <p className="text-slate-400 text-sm mt-2">Complete your mission data to begin.</p>
+          <h1 className="text-3xl font-bold text-gray-900">STEM Explorer</h1>
+          <p className="text-gray-500 text-sm mt-2">Your journey to science mastery begins here.</p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          
-          {/* Username Field */}
           <div>
-            <label className="block text-purple-400 font-bold text-sm mb-2">USERNAME</label>
+            <label className="block text-gray-700 font-bold text-sm mb-2">Explorer Name</label>
             <input 
               type="text" 
               required
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500 transition"
-              placeholder="Enter your codename"
+              className="w-full bg-white border border-gray-300 rounded-xl p-3 text-gray-900 focus:outline-none focus:border-purple-500 transition"
               value={formData.username}
               onChange={(e) => setFormData({...formData, username: e.target.value})}
             />
           </div>
-
-          {/* Email Field */}
           <div>
-            <label className="block text-purple-400 font-bold text-sm mb-2">EMAIL ADDRESS</label>
+            <label className="block text-gray-700 font-bold text-sm mb-2">Email Address</label>
             <input 
               type="email" 
-              required
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500 transition"
+              disabled // Email should typically be read-only here if coming from Clerk
+              className="w-full bg-gray-100 border border-gray-300 rounded-xl p-3 text-gray-500 cursor-not-allowed"
               value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
             />
           </div>
-
-          {/* Grade Dropdown */}
           <div>
-            <label className="block text-purple-400 font-bold text-sm mb-2">CURRENT GRADE</label>
+            <label className="block text-gray-700 font-bold text-sm mb-2">Current Grade</label>
             <select 
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500 transition"
+              className="w-full bg-white border border-gray-300 rounded-xl p-3 text-gray-900 focus:outline-none focus:border-purple-500 transition"
               value={formData.grade}
               onChange={(e) => setFormData({...formData, grade: e.target.value})}
             >
@@ -92,16 +103,13 @@ export default function ProfileSetup() {
               <option>Undergraduate</option>
             </select>
           </div>
-
-          {/* Submit Button */}
           <button 
             type="submit"
-            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg transform hover:scale-[1.02] transition-all"
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
           >
-            Start Mission ➔
+            Proceed ➔
           </button>
         </form>
-
       </div>
     </div>
   );
