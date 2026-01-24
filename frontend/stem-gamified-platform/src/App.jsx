@@ -1,11 +1,11 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/Login';
+import { Routes, Route } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import Career from './pages/Career';
 import Quiz from './pages/Quiz';
 import Leaderboard from './pages/Leaderboard';
 import QuizSetup from './pages/QuizSetup'; // Import the new page
-
+import ProfileSetup from './pages/ProfileSetup';
+import Login from './pages/Login';
 
 function App() {
   return (
@@ -15,8 +15,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           
           {/* Default Route: Redirect to Login if accessed directly */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          
+          <Route path="/" element={<ProfileSetup />} /> 
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/career" element={<Career />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
