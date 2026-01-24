@@ -34,7 +34,7 @@ export default function ProfileSetup() {
   const handleSubmit = async (e) => { // Make function async
     e.preventDefault();
     
-    // 1. Save to Local Storage (Keep this for fast UI access)
+    // Save profile to LocalStorage
     localStorage.setItem("userProfile", JSON.stringify(formData));
 
     // 2. SEND TO BACKEND (Initialize DB Entry)
@@ -55,13 +55,15 @@ export default function ProfileSetup() {
         }
     }
     
-    // 3. Navigate
+    // Redirect to Dashboard
     navigate("/dashboard"); 
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-2xl w-full max-w-md">
+        
+        {/* Header */}
         <div className="text-center mb-8">
           <div className="text-5xl mb-4">🚀</div>
           <h1 className="text-3xl font-bold text-gray-900">STEM Explorer</h1>
@@ -74,7 +76,8 @@ export default function ProfileSetup() {
             <input 
               type="text" 
               required
-              className="w-full bg-white border border-gray-300 rounded-xl p-3 text-gray-900 focus:outline-none focus:border-purple-500 transition"
+              className="w-full bg-white border border-gray-300 rounded-xl p-3 text-gray-900 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition"
+              placeholder="e.g. Alex"
               value={formData.username}
               onChange={(e) => setFormData({...formData, username: e.target.value})}
             />
@@ -83,15 +86,15 @@ export default function ProfileSetup() {
             <label className="block text-gray-700 font-bold text-sm mb-2">Email Address</label>
             <input 
               type="email" 
-              disabled // Email should typically be read-only here if coming from Clerk
-              className="w-full bg-gray-100 border border-gray-300 rounded-xl p-3 text-gray-500 cursor-not-allowed"
+              required
+              className="w-full bg-white border border-gray-300 rounded-xl p-3 text-gray-900 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition"
               value={formData.email}
             />
           </div>
           <div>
             <label className="block text-gray-700 font-bold text-sm mb-2">Current Grade</label>
             <select 
-              className="w-full bg-white border border-gray-300 rounded-xl p-3 text-gray-900 focus:outline-none focus:border-purple-500 transition"
+              className="w-full bg-white border border-gray-300 rounded-xl p-3 text-gray-900 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition"
               value={formData.grade}
               onChange={(e) => setFormData({...formData, grade: e.target.value})}
             >
@@ -103,9 +106,11 @@ export default function ProfileSetup() {
               <option>Undergraduate</option>
             </select>
           </div>
+
+          {/* Submit Button - TEXT CHANGED HERE */}
           <button 
             type="submit"
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-xl shadow-lg transform hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
           >
             Proceed ➔
           </button>
