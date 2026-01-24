@@ -1,188 +1,206 @@
-import { useState } from "react";
-import { analyzeSkills, getCareerRecommendations, getLearningPath } from "../services/api";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Career() {
-  const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState(1); // 1=Input, 2=Results
+  const navigate = useNavigate();
   
-  // User Inputs
-  const [grade, setGrade] = useState("10th");
+  // State for user input
+  const [grade, setGrade] = useState("10th Grade");
   const [interests, setInterests] = useState("");
   
-  // AI Results Storage
+  // State for AI Results
+  const [loading, setLoading] = useState(false);
   const [skillProfile, setSkillProfile] = useState(null);
-  const [careerRecs, setCareerRecs] = useState([]);
-  const [learningPath, setLearningPath] = useState([]);
 
-  // --- MOCK DATA FOR INTEGRATION TESTING ---
-  // In the real app, this comes from your database/quiz history
-  const mockQuizHistory = [
-    { topic: "Algebra", attempts: 5, correct: 4, avg_time_sec: 45 },
-    { topic: "Physics_Mechanics", attempts: 3, correct: 1, avg_time_sec: 120 },
-    { topic: "Python_Basics", attempts: 10, correct: 9, avg_time_sec: 30 },
-  ];
-
- const handleAnalysis = async () => {
+  const handleAnalysis = async () => {
     setLoading(true);
+    setSkillProfile(null); 
+
     try {
-      const interestList = interests.split(",").map((i) => i.trim());
-      const userId = "user_123";
+      const history = JSON.parse(localStorage.getItem('quizHistory') || '[]');
 
-      // --- INTEGRATION CHANGE: READ REAL DATA ---
-      // Get history from the Quiz we just played!
-      const localHistory = JSON.parse(localStorage.getItem('quizHistory') || '[]');
-      
-      // If user hasn't played yet, fallback to mock data so demo doesn't fail
-      const quizData = localHistory.length > 0 ? localHistory : [
-        { topic: "Algebra", attempts: 5, correct: 4, avg_time_sec: 45 },
-        { topic: "Physics_Mechanics", attempts: 3, correct: 1, avg_time_sec: 120 },
-      ];
+      const res = await fetch("http://127.0.0.1:8000/analyze-skill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: "user_123",
+          grade: grade,
+          interests: interests.split(","),
+          quizHistory: history
+        })
+      });
 
-      // 1. Call Skill Profiling Agent
-      const profileData = await analyzeSkills(userId, grade, interestList, mockQuizHistory);
-      setSkillProfile(profileData);
+      if (!res.ok) throw new Error("Server failed");
 
-      // 2. Call Career Matching Agent (using the vector from step 1)
-      const careerData = await getCareerRecommendations(userId, profileData.skill_vector, interestList, grade);
-      setCareerRecs(careerData.recommendations);
+      const data = await res.json();
+      console.log("DATA RECEIVED:", data); 
+      setSkillProfile(data);
 
-      // 3. Call Learning Path Agent
-      const pathData = await getLearningPath(userId, profileData.skill_vector, profileData.weak_dimensions);
-      setLearningPath(pathData.steps);
-
-      setStep(2);
-    } catch (error) {
-      console.error("AI Engine Error:", error);
-      alert("Failed to connect to AI Engine. Make sure backend is running on port 8000!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to connect to AI Brain. Ensure backend is running!");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
-    <div className="p-8 max-w-6xl mx-auto font-sans">
-      <h1 className="text-3xl font-bold mb-6 text-indigo-700">AI Career Guidance</h1>
+    <div className="min-h-screen bg-gray-50 text-gray-800 p-8 font-sans">
+      
+      {/* HEADER */}
+      <div className="max-w-4xl mx-auto mb-12 text-center">
+        <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600 mb-4">
+          AI Career Guidance
+        </h1>
+        <p className="text-gray-500 text-lg">
+          Our AI Agents analyze your quiz performance and interests to build your future.
+        </p>
+      </div>
 
-      {step === 1 && (
-        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-          <h2 className="text-xl font-semibold mb-4">Step 1: Tell us about yourself</h2>
-          
-          <div className="mb-4">
-            <label className="block text-gray-700 mb-2">Current Grade/Year</label>
+      {/* INPUT SECTION */}
+      <div className="max-w-2xl mx-auto bg-white p-8 rounded-3xl border border-gray-200 shadow-xl mb-12">
+        <div className="space-y-6">
+          <div>
+            <label className="block text-gray-600 mb-2 font-bold">Current Grade</label>
             <select 
-              value={grade} 
+              value={grade}
               onChange={(e) => setGrade(e.target.value)}
-              className="w-full p-2 border rounded"
+              className="w-full bg-gray-50 border border-gray-300 rounded-xl p-4 text-gray-900 focus:ring-2 focus:ring-purple-500 outline-none transition"
             >
-              <option value="9th">9th Grade</option>
-              <option value="10th">10th Grade</option>
-              <option value="11th">11th Grade</option>
-              <option value="12th">12th Grade</option>
-              <option value="Undergrad">Undergrad</option>
+              <option>9th Grade</option>
+              <option>10th Grade</option>
+              <option>11th Grade</option>
+              <option>12th Grade</option>
+              <option>Undergrad (1st Year)</option>
+              <option>Undergrad (2nd Year)</option>
             </select>
           </div>
 
-          <div className="mb-6">
-            <label className="block text-gray-700 mb-2">Interests (comma separated)</label>
+          <div>
+            <label className="block text-gray-600 mb-2 font-bold">Your Interests (comma separated)</label>
             <input 
               type="text" 
-              placeholder="e.g. Robotics, AI, Space, History"
               value={interests}
               onChange={(e) => setInterests(e.target.value)}
-              className="w-full p-2 border rounded"
+              placeholder="e.g. Robotics, Space, Biology, Drawing"
+              className="w-full bg-gray-50 border border-gray-300 rounded-xl p-4 text-gray-900 focus:ring-2 focus:ring-purple-500 outline-none transition"
             />
           </div>
 
           <button 
             onClick={handleAnalysis}
             disabled={loading}
-            className="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700 w-full font-bold"
+            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-4 rounded-xl transition-all transform hover:scale-[1.02] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "AI Agents Working..." : "Analyze Profile & Suggest Careers"}
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                AI Agents Working...
+              </span>
+            ) : "🚀 Analyze My Career Path"}
           </button>
-          
-          <p className="text-sm text-gray-500 mt-4 text-center">
-            *This will also analyze your recent quiz performance (Mock Data used for now).
-          </p>
         </div>
-      )}
+      </div>
 
-      {step === 2 && skillProfile && (
-        <div className="space-y-8">
-          {/* Section 1: Skill Analysis */}
-          <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
-            <h2 className="text-2xl font-bold text-blue-800 mb-4">1. Skill Analysis</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h3 className="font-semibold text-green-700">Your Strengths</h3>
-                <ul className="list-disc pl-5">
-                  {skillProfile.strengths.map((s, i) => <li key={i}>{s}</li>)}
-                </ul>
-              </div>
-              <div>
-                <h3 className="font-semibold text-red-700">Areas for Improvement</h3>
-                <ul className="list-disc pl-5">
-                  {skillProfile.weak_dimensions.map((w, i) => <li key={i}>{w}</li>)}
-                </ul>
-              </div>
-            </div>
+      {/* RESULTS SECTION */}
+      {skillProfile && (
+        <div className="max-w-5xl mx-auto animate-fade-in-up">
+          
+           {/* AI INDICATOR BADGE */}
+          <div className="flex justify-center mb-4">
+            {skillProfile.source === "ai" ? (
+              <span className="bg-green-100 text-green-700 border border-green-200 px-4 py-1 rounded-full text-sm font-bold flex items-center gap-2">
+                ⚡ Generated Live by Gemini AI
+              </span>
+            ) : (
+              <span className="bg-red-100 text-red-700 border border-red-200 px-4 py-1 rounded-full text-sm font-bold flex items-center gap-2">
+                ⚠️ Offline Mode (Backup Data)
+              </span>
+            )}
           </div>
 
-          {/* Section 2: Career Recommendations */}
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">2. Top Career Matches</h2>
-            <div className="grid md:grid-cols-3 gap-6">
-              {careerRecs.map((career) => (
-                <div key={career.id} className="bg-white border rounded-xl shadow-sm hover:shadow-md transition p-5">
-                  <h3 className="text-xl font-bold text-indigo-600">{career.title}</h3>
-                  <div className="text-sm text-gray-500 mb-2">Match Score: {(career.score * 100).toFixed(0)}%</div>
-                  <p className="text-gray-700 text-sm mb-4">{career.description}</p>
-                  
-                  <div className="mb-3">
-                    <span className="text-xs font-semibold bg-gray-100 p-1 rounded">Required:</span>
-                    <p className="text-xs text-gray-600 mt-1">{career.qualifications.join(", ")}</p>
-                  </div>
-
-                  <button className="text-indigo-600 text-sm font-semibold hover:underline">
-                    View Full Roadmap →
-                  </button>
-                </div>
-              ))}
-            </div>
+          {/* 1. ARCHETYPE CARD */}
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-700 p-8 rounded-3xl text-center mb-12 shadow-xl relative overflow-hidden text-white">
+            <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20"></div>
+            <h2 className="text-white/80 uppercase tracking-widest text-sm font-bold mb-2">Your Scientist Archetype</h2>
+            <h3 className="text-4xl md:text-5xl font-black text-yellow-300 mb-4 drop-shadow-md">
+              {skillProfile.profile.archetype}
+            </h3>
+            <p className="text-xl text-white/90 max-w-2xl mx-auto italic font-medium">
+              "{skillProfile.profile.summary}"
+            </p>
           </div>
 
-          {/* Section 3: Learning Path */}
-          <div className="bg-gray-50 p-6 rounded-lg">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">3. Immediate Learning Path</h2>
-            <div className="space-y-4">
-              {learningPath.map((step, idx) => (
-                <div key={idx} className="flex items-start">
-                  <div className="bg-indigo-600 text-white rounded-full w-8 h-8 flex items-center justify-center shrink-0 mt-1">
-                    {idx + 1}
-                  </div>
-                  <div className="ml-4">
-                    <h4 className="font-bold text-lg">{step.dimension}</h4>
-                    <p className="text-gray-600">{step.reason}</p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {step.suggested_topics.map((topic, i) => (
-                        <span key={i} className="bg-white border border-gray-300 px-2 py-1 text-xs rounded-full">
-                          Study: {topic}
-                        </span>
-                      ))}
+          <div className="grid md:grid-cols-2 gap-8">
+            
+            {/* 2. CAREER MATCHES */}
+            <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-lg">
+              <h3 className="text-2xl font-bold mb-6 flex items-center gap-3 text-gray-800">
+                <span className="text-3xl">🎯</span> Top Career Matches
+              </h3>
+              <div className="space-y-4">
+                {skillProfile.careers.map((career, idx) => (
+                  <div key={idx} className="bg-gray-50 p-5 rounded-2xl border border-gray-100 hover:border-purple-200 hover:bg-purple-50 transition-colors group">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-bold text-lg text-gray-800 group-hover:text-purple-700">{career.title}</h4>
+                      <span className="bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full border border-green-200">
+                        {career.match}% Match
+                      </span>
+                    </div>
+                    <p className="text-gray-500 text-sm mb-3">{career.reason}</p>
+                    <div className="text-xs text-gray-400 font-mono font-bold">
+                      🎓 Major: <span className="text-indigo-600">{career.degree}</span>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
+
+            {/* 3. LEARNING ROADMAP (FIXED FOR OBJECT ERROR) */}
+            <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-lg">
+              <h3 className="text-2xl font-bold mb-6 flex items-center gap-3 text-gray-800">
+                <span className="text-3xl">🗺️</span> Your Roadmap
+              </h3>
+              <div className="space-y-6 relative">
+                {/* Vertical Line */}
+                <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-gray-200"></div>
+                
+                {skillProfile.roadmap.map((step, idx) => (
+                  <div key={idx} className="relative pl-12">
+                    {/* Dot */}
+                    <div className="absolute left-2 top-1 w-4 h-4 bg-purple-600 rounded-full border-4 border-white shadow-sm box-content"></div>
+                    <h4 className="font-bold text-lg text-gray-800 mb-1">Step {idx + 1}</h4>
+                    
+                    {/* --- THE FIX IS HERE --- */}
+                    {typeof step === 'object' ? (
+                      <div>
+                        <span className="block font-bold text-indigo-600 mb-1">{step.title}</span>
+                        <p className="text-gray-500 text-sm leading-relaxed">{step.description}</p>
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-sm leading-relaxed">{step}</p>
+                    )}
+                    {/* ----------------------- */}
+                    
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
-          
-          <button 
-            onClick={() => setStep(1)}
-            className="mt-8 text-gray-500 hover:text-gray-700 underline"
-          >
-            ← Start Over
-          </button>
         </div>
       )}
+
+      {/* Back Button */}
+      <div className="text-center mt-12">
+        <button 
+          onClick={() => navigate('/dashboard')}
+          className="text-gray-400 hover:text-purple-600 transition underline font-medium"
+        >
+          ← Back to Dashboard
+        </button>
+      </div>
+
     </div>
   );
 }

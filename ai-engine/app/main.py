@@ -4,137 +4,71 @@ from pydantic import BaseModel
 from typing import List, Dict, Optional, Any
 import os
 import json
+import re  # <--- ADDED REGEX MODULE FOR CLEANING
 from pathlib import Path
 from dotenv import load_dotenv
 
-# --- 1. NEW LIBRARY IMPORT ---
-from google import genai
-from google.genai import types
+# --- 1. LIBRARIES FOR BOTH BRAINS ---
+from groq import Groq          # For Fast Quizzes
+from google import genai       # For Smart Career Advice
 
-# --- 2. LOAD SECRETS ---
+# --- 2. SETUP & SECRETS ---
 env_path = Path(__file__).resolve().parent.parent / '.env'
 load_dotenv(dotenv_path=env_path)
 
-api_key = os.getenv("GEMINI_API_KEY")
+groq_key = os.getenv("GROQ_API_KEY")
+gemini_key = os.getenv("GEMINI_API_KEY")
 
-# --- 3. INITIALIZE CLIENT ---
-# Use the "Lite" model as discussed for speed and cost
-MODEL_NAME = 'gemini-2.5-flash' 
+# --- 3. INITIALIZE CLIENTS ---
+groq_client = None
+gemini_client = None
 
-if not api_key:
-    print("❌ CRITICAL WARNING: API Key not found! Check your .env file.")
-    client = None
-else:
+if groq_key:
     try:
-        client = genai.Client(api_key=api_key)
-        print(f"✅ Gemini Client Initialized (Model: {MODEL_NAME})")
+        groq_client = Groq(api_key=groq_key)
+        print("✅ Groq Brain Online (Ready for Quizzes)")
     except Exception as e:
-        print(f"❌ Error initializing client: {e}")
-        client = None
+        print(f"⚠️ Groq Error: {e}")
 
-app = FastAPI(title="Gamified STEM Platform API", version="3.0.0")
+# GEMINI MODEL
+GEMINI_MODEL = 'gemini-2.0-flash-lite' 
+
+if gemini_key:
+    try:
+        gemini_client = genai.Client(api_key=gemini_key)
+        print(f"✅ Gemini Brain Online (Ready for Career: {GEMINI_MODEL})")
+    except Exception as e:
+        print(f"⚠️ Gemini Error: {e}")
+
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# --- 4. AGENT CLASSES (The Missing Brains) ---
+# --- 4. BACKUP DATA ---
+BACKUP_CAREER = {
+    "source": "backup",
+    "profile": {
+        "strengths": ["Logic", "Patterns"],
+        "weaknesses": ["Creativity"],
+        "archetype": "The Offline Strategist",
+        "summary": "AI is taking a nap, but your potential is awake!"
+    },
+    "careers": [
+        {"title": "System Architect", "match": 95, "reason": "System is offline.", "degree": "CS"},
+        {"title": "Network Engineer", "match": 90, "reason": "Connectivity expert.", "degree": "IT"}
+    ],
+    "roadmap": [
+        {"title": "Check API Key", "description": "Ensure your .env file has valid keys."},
+        {"title": "Restart Server", "description": "Try restarting the backend terminal."}
+    ]
+}
 
-class SkillProfilingAgent:
-    def __init__(self, client):
-        self.client = client
-
-    def analyze(self, user_data: Dict):
-        """Analyzes quiz history to find strengths/weaknesses."""
-        if not self.client:
-            return {"error": "AI not connected"}
-
-        prompt = f"""
-        Analyze this student's performance data:
-        {json.dumps(user_data)}
-
-        Task:
-        1. Identify their top 3 strong topics.
-        2. Identify 2 weak areas needing improvement.
-        3. Assign a "Scientist Archetype" (e.g., "The Quantum Mechanic", "The Data Wizard").
-
-        Return JSON ONLY:
-        {{
-            "strengths": ["topic1", "topic2", "topic3"],
-            "weaknesses": ["topicA", "topicB"],
-            "archetype": "Name",
-            "summary": "One sentence summary of their ability."
-        }}
-        """
-        
-        try:
-            response = self.client.models.generate_content(
-                model=MODEL_NAME,
-                contents=prompt
-            )
-            text = response.text.replace("```json", "").replace("```", "").strip()
-            return json.loads(text)
-        except Exception as e:
-            print(f"Skill Agent Error: {e}")
-            # Fallback if AI fails
-            return {
-                "strengths": ["General Science"],
-                "weaknesses": ["Advanced Math"],
-                "archetype": "Rising Star",
-                "summary": "Keep practicing to refine your skills!"
-            }
-
-class CareerGuidanceAgent:
-    def __init__(self, client):
-        self.client = client
-
-    def recommend(self, skill_profile: Dict, interests: List[str]):
-        """Suggests careers based on skills + interests."""
-        if not self.client:
-            return {"error": "AI not connected"}
-
-        prompt = f"""
-        Student Skills: {json.dumps(skill_profile)}
-        Student Interests: {json.dumps(interests)}
-
-        Task: Recommend 3 specific STEM careers.
-        For each, provide:
-        - Job Title
-        - Match Score (0-100%)
-        - Why it fits
-        - One required university major
-
-        Return JSON ONLY:
-        [
-            {{
-                "title": "Job Title",
-                "match": 95,
-                "reason": "Because you are good at X and like Y...",
-                "degree": "Major Name"
-            }}
-        ]
-        """
-        try:
-            response = self.client.models.generate_content(
-                model=MODEL_NAME,
-                contents=prompt
-            )
-            text = response.text.replace("```json", "").replace("```", "").strip()
-            return json.loads(text)
-        except Exception as e:
-            print(f"Career Agent Error: {e}")
-            return []
-
-# --- 5. INSTANTIATE AGENTS ---
-# This is where your error happened before - we must create the agents!
-skill_agent = SkillProfilingAgent(client)
-career_agent = CareerGuidanceAgent(client)
-
-# --- 6. DATA MODELS ---
+# --- 5. DATA MODELS ---
 class QuizRequest(BaseModel):
     topic: str
     difficulty: str
@@ -143,48 +77,135 @@ class SkillAnalysisRequest(BaseModel):
     userId: str
     grade: str
     interests: List[str]
-    quizHistory: List[Dict] # The data from your Quiz Page
+    quizHistory: List[Dict]
 
-# --- 7. ENDPOINTS ---
+# --- 6. ENDPOINTS ---
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "model": MODEL_NAME}
+    return {
+        "status": "ok", 
+        "groq": groq_client is not None, 
+        "gemini": gemini_client is not None
+    }
 
+# ==========================================
+#  ENDPOINT 1: QUIZ GENERATION (USES GROQ)
+# ==========================================
 @app.post("/generate-quiz")
 def generate_quiz(req: QuizRequest):
-    if not client: raise HTTPException(status_code=500, detail="No API Key")
+    if not groq_client:
+        print("❌ Groq not connected. Sending fallback.")
+        return [{"id": 1, "question": "Groq Error. What is 2+2?", "options": ["3","4","5","6"], "correctAnswer": "4"}]
     
-    try:
-        prompt = f"""
-        Create 5 multiple-choice questions about "{req.topic}" at "{req.difficulty}" level.
-        Return strictly JSON list. No markdown.
-        Format: [{{ "id": 1, "question": "...", "options": ["A","B","C","D"], "correctAnswer": "A", "topic": "{req.topic}", "difficulty": "{req.difficulty}" }}]
-        """
-        response = client.models.generate_content(model=MODEL_NAME, contents=prompt)
-        return json.loads(response.text.replace("```json", "").replace("```", "").strip())
-    except Exception as e:
-        print(f"Quiz Gen Error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    # --- UPDATED DIFFICULTY LOGIC ---
+    difficulty_instruction = ""
+    if req.difficulty.lower() == "easy":
+        difficulty_instruction = (
+            "DIFFICULTY: COMPETITIVE HIGH SCHOOL (SAT/JEE Main).\n"
+            "- Conceptual but solvable in 1 minute."
+        )
+    elif req.difficulty.lower() == "medium":
+        difficulty_instruction = (
+            "DIFFICULTY: UNDERGRADUATE ENGINEERING (GATE/Advanced).\n"
+            "- Requires derivation or multi-step logic.\n"
+            "- Target time: 2-3 minutes."
+        )
+    elif req.difficulty.lower() == "hard":
+        difficulty_instruction = (
+            "DIFFICULTY: PhD / OLYMPIAD LEVEL (EXTREMELY HARD).\n"
+            "- Involve obscure edge cases or complex math paradoxes.\n"
+            "- If using math formulas, write them as PLAIN TEXT description, DO NOT use LaTeX backslashes.\n"
+            "- Target time: 5+ minutes."
+        )
 
+    try:
+        # We explicitly tell it NOT to use backslashes to avoid JSON errors
+        prompt = f"""
+        Act as a ruthless Examiner. Create 10 multiple-choice questions about "{req.topic}".
+        
+        {difficulty_instruction}
+        
+        STRICT JSON FORMATTING RULES:
+        1. Return ONLY a valid JSON array.
+        2. Do NOT write any introduction or conclusion text.
+        3. Do NOT use markdown code blocks (```json).
+        4. Do NOT use LaTeX or backslashes (\\) in strings. Write "square root of x" instead of \\sqrt{{x}}.
+        5. Structure: [{{ "id": 1, "question": "...", "options": ["A","B","C","D"], "correctAnswer": "A" }}]
+        """
+        
+        chat_completion = groq_client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.3-70b-versatile",
+            temperature=0.5, # Lower temp = more stable JSON
+        )
+        
+        # --- ROBUST CLEANING LOGIC ---
+        raw_text = chat_completion.choices[0].message.content
+        
+        # 1. Remove Markdown (```json ... ```)
+        text = raw_text.replace("```json", "").replace("```", "").strip()
+        
+        # 2. Extract strictly the List [...] part using Regex
+        # This ignores any "Here is your quiz:" text before the JSON
+        match = re.search(r'\[.*\]', text, re.DOTALL)
+        if match:
+            text = match.group(0)
+        
+        # 3. Parse
+        return json.loads(text)
+
+    except json.JSONDecodeError as je:
+        print(f"❌ JSON Parse Error: {je}")
+        # Debugging: Print what the AI actually sent so we can see the bad character
+        print(f"--- BAD JSON START ---\n{text[:200]}...\n--- BAD JSON END ---")
+        return [{"id": 1, "question": "AI Formatting Error (Try again).", "options": ["Ok"], "correctAnswer": "Ok"}]
+    except Exception as e:
+        print(f"❌ General Error: {e}")
+        return [{"id": 1, "question": "Simulation Error.", "options": ["Ok"], "correctAnswer": "Ok"}]
+
+# ==========================================
+#  ENDPOINT 2: CAREER GUIDANCE (USES GEMINI)
+# ==========================================
 @app.post("/analyze-skill")
 def analyze_skill(req: SkillAnalysisRequest):
-    """
-    1. Uses SkillAgent to profile the user.
-    2. Uses CareerAgent to suggest jobs.
-    3. Returns a combined report.
-    """
-    print(f"🧠 Analyzing skills for {req.userId}...")
-    
-    # Step 1: Profile Skills
-    skill_profile = skill_agent.analyze(req.quizHistory)
-    
-    # Step 2: Get Career Matches
-    career_matches = career_agent.recommend(skill_profile, req.interests)
-    
-    # Step 3: Combine
-    return {
-        "profile": skill_profile,
-        "careers": career_matches,
-        "roadmap": ["Learn Python Basics", "Master Algebra II", "Build a Portfolio Project"] # Mock roadmap for now
-    }
+    if not gemini_client:
+        return BACKUP_CAREER
+
+    try:
+        print(f"🧠 Gemini thinking about: {req.interests}")
+        prompt = f"""
+        Act as a Career Counselor.
+        User Grade: {req.grade}
+        User Interests: {json.dumps(req.interests)}
+        
+        Task: Create a unique career profile.
+        STRICTLY return JSON. No Markdown.
+        
+        Structure:
+        {{
+            "profile": {{ "strengths": ["A","B"], "weaknesses": ["C"], "archetype": "Cool Title", "summary": "One sentence" }},
+            "careers": [ {{ "title": "Job", "match": 90, "reason": "Why", "degree": "Major" }} ],
+            "roadmap": [{{ "title": "Step 1", "description": "Details" }}, {{ "title": "Step 2", "description": "Details" }}]
+        }}
+        """
+        
+        response = gemini_client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt
+        )
+        
+        clean_text = response.text.replace("```json", "").replace("```", "").strip()
+        
+        # Regex clean for Gemini too, just in case
+        match = re.search(r'\{.*\}', clean_text, re.DOTALL)
+        if match:
+            clean_text = match.group(0)
+
+        data = json.loads(clean_text)
+        data["source"] = "ai" 
+        return data
+
+    except Exception as e:
+        print(f"❌ AI Career Error: {e}")
+        return BACKUP_CAREER

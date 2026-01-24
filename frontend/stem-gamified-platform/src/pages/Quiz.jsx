@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useUser } from "@clerk/clerk-react"; // <--- 1. Import Clerk
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useUser } from "@clerk/clerk-react"; 
 import he from 'he'; 
 
 // Safety Helper: Decodes HTML like "Don&039;t" -> "Don't"
@@ -12,113 +12,126 @@ const decodeHTML = (html) => {
 
 export default function Quiz() {
   const navigate = useNavigate();
-  const { user } = useUser(); // <--- 2. Get User Details
+  const location = useLocation();
+  const { user } = useUser(); 
   
-  const [questions, setQuestions] = useState([]); 
-  const [loading, setLoading] = useState(true); 
+  // Get settings from the Setup Page (or default if direct access)
+  const { topic, difficulty } = location.state || { topic: "General Science", difficulty: "Easy" };
+
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [currentQ, setCurrentQ] = useState(0);
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
-  const [timer, setTimer] = useState(15); 
+  
+  // GLOBAL TIMER (Total seconds for the whole quiz)
+  const [totalTime, setTotalTime] = useState(0); 
   const [history, setHistory] = useState([]);
 
-  // FETCH QUESTIONS
+  // 1. FETCH QUESTIONS
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
         const res = await fetch("http://127.0.0.1:8000/generate-quiz", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ topic: "Quantum Physics", difficulty: "Medium" })
+          body: JSON.stringify({ topic, difficulty })
         });
 
         if (!res.ok) throw new Error("AI Failed");
         const data = await res.json();
         
-        const formattedQuestions = data.map((q, index) => ({
-          id: index,
-          topic: q.topic || "Science",
-          question: q.question, 
-          options: q.options,
-          correctAnswer: q.correctAnswer,
-          difficulty: q.difficulty || "Medium"
+        // Format Data
+        const formatted = data.map((q, i) => ({
+          ...q, 
+          id: i,
+          topic: topic, 
+          difficulty: difficulty
         }));
         
-        setQuestions(formattedQuestions);
+        setQuestions(formatted);
+
+        // 2. SET GLOBAL TIMER BASED ON DIFFICULTY
+        // Easy = 1 min/q, Medium = 2.5 min/q, Hard = 4.5 min/q
+        let timePerQuestion = 60; // Default Easy: 1 min
+        
+        if (difficulty === "Medium") {
+            timePerQuestion = 150; // Medium: 2.5 mins
+        } else if (difficulty === "Hard") {
+            timePerQuestion = 270; // Hard: 4.5 mins
+        }
+        
+        setTotalTime(formatted.length * timePerQuestion);
+
       } catch (err) {
-        console.error("Failed to load questions, using backup...", err);
-        setQuestions([
-          {
-            id: 1, topic: "Physics", question: "What is the speed of light?", 
-            options: ["3x10^8 m/s", "Zero", "Infinite", "Sound speed"], 
-            correctAnswer: "3x10^8 m/s"
-          }
-        ]);
+        console.error("Using Fallback", err);
+        // Fallback
+        setQuestions([{
+            id: 0, topic: topic, question: "Simulation Failed. Return to base?", 
+            options: ["Yes", "No"], correctAnswer: "Yes", difficulty: "Easy"
+        }]);
+        setTotalTime(60);
       } finally {
         setLoading(false);
       }
     };
     fetchQuestions();
-  }, []);
+  }, [topic, difficulty]);
 
-  // TIMER
+  // 3. GLOBAL COUNTDOWN TIMER
   useEffect(() => {
-    if (timer > 0 && !showResult && !loading && questions.length > 0) {
-      const interval = setInterval(() => setTimer((t) => t - 1), 1000);
+    if (totalTime > 0 && !showResult && !loading) {
+      const interval = setInterval(() => {
+        setTotalTime((prev) => {
+          if (prev <= 1) {
+            // Calculate current score to pass to finishQuiz
+            // Note: If time runs out, we strictly pass the current score state
+            finishQuiz(score, history); 
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
       return () => clearInterval(interval);
-    } else if (timer === 0 && !showResult && !loading) {
-      handleNext(false);
     }
-  }, [timer, showResult, loading, questions]);
+  }, [totalTime, showResult, loading, score, history]);
 
-  const handleAnswer = (selectedOption) => {
-    if (!questions[currentQ]) return;
-    const isCorrect = selectedOption === questions[currentQ].correctAnswer;
-    handleNext(isCorrect);
+  // Format Seconds into MM:SS
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  const handleNext = (isCorrect) => {
-    const currentQuestion = questions[currentQ];
+  const handleAnswer = (selectedOption) => {
+    const isCorrect = selectedOption === questions[currentQ].correctAnswer;
     
-    const record = {
-      topic: currentQuestion.topic,
-      attempts: 1,
+    // Save history
+    const newHistory = [...history, {
+      topic: topic,
       correct: isCorrect ? 1 : 0,
-      avg_time_sec: 15 - timer
-    };
+    }];
+    setHistory(newHistory);
+
+    // Calculate points for this specific question
+    const points = isCorrect ? (difficulty === "Hard" ? 500 : difficulty === "Medium" ? 300 : 100) : 0;
+    const newScore = score + points;
     
-    setHistory([...history, record]);
-    
-    // Calculate intermediate score (for state)
-    let newScore = score;
-    if (isCorrect) {
-        newScore = score + 100;
-        setScore(newScore);
-    }
+    setScore(newScore);
 
     if (currentQ < questions.length - 1) {
       setCurrentQ(currentQ + 1);
-      setTimer(15);
     } else {
-      finishQuiz(isCorrect, newScore); // Pass the final calculated score
+      finishQuiz(newScore, newHistory);
     }
   };
 
-  const finishQuiz = async (lastCorrect, finalScore) => {
+  const finishQuiz = async (finalScore, finalHistory) => {
     setShowResult(true);
     
     // --- 3. SAVE TO LOCAL STORAGE ---
     const existingData = JSON.parse(localStorage.getItem('quizHistory') || '[]');
-    const currentQuestion = questions[currentQ];
-    
-    const newSessionData = [...history, {
-        topic: currentQuestion.topic,
-        attempts: 1,
-        correct: lastCorrect ? 1 : 0,
-        avg_time_sec: 15 - timer
-    }];
-
-    const merged = [...existingData, ...newSessionData];
+    const merged = [...existingData, ...finalHistory];
     localStorage.setItem('quizHistory', JSON.stringify(merged));
     
     const currentXP = parseInt(localStorage.getItem('userXP') || '0');
@@ -185,59 +198,50 @@ export default function Quiz() {
   }
 
   const q = questions[currentQ];
-
-  if (!q) {
-    return <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">No questions available.</div>;
-  }
+  if (!q) return <div className="text-white">Error</div>;
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-900 text-white p-6 font-sans flex flex-col items-center">
       
-      {/* Progress Bar */}
-      <div className="w-full max-w-2xl bg-slate-800 h-2 rounded-full mb-8 overflow-hidden">
-        <div 
-          className="bg-purple-500 h-full transition-all duration-300"
-          style={{ width: `${((currentQ) / questions.length) * 100}%` }}
-        ></div>
+      {/* TOP BAR */}
+      <div className="w-full max-w-4xl flex justify-between items-center mb-8 bg-slate-800 p-4 rounded-2xl border border-white/5">
+        <div>
+          <h2 className="font-bold text-lg">{topic}</h2>
+          <span className={`text-xs px-2 py-0.5 rounded ${difficulty === 'Hard' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+            {difficulty} Protocol
+          </span>
+        </div>
+        <div className={`text-2xl font-mono font-bold ${totalTime < 60 ? 'text-red-500 animate-pulse' : 'text-indigo-400'}`}>
+          {formatTime(totalTime)}
+        </div>
       </div>
 
-      <div className="w-full max-w-2xl">
-        <div className="flex justify-between items-center mb-6">
-          <span className="bg-slate-800 px-4 py-1 rounded-full text-sm font-mono text-slate-300">
-            {q.topic ? q.topic.replace('_', ' ') : 'General'}
-          </span>
-          <div className={`flex items-center gap-2 font-bold ${timer < 5 ? 'text-red-500' : 'text-green-400'}`}>
-            <span>⏱ {timer}s</span>
-          </div>
+      {/* QUESTION CARD */}
+      <div className="w-full max-w-3xl">
+        {/* Progress Bar */}
+        <div className="w-full bg-slate-800 h-1 rounded-full mb-6">
+          <div className="bg-purple-500 h-full transition-all duration-500" style={{ width: `${((currentQ + 1) / questions.length) * 100}%` }}></div>
         </div>
 
         <div className="bg-slate-800/50 backdrop-blur-sm border border-white/5 p-8 rounded-3xl shadow-xl">
           <h2 className="text-2xl font-bold mb-8 leading-relaxed">
-            {/* Optional: Use your decodeHTML helper here if questions have weird symbols */}
             {decodeHTML(q.question)}
           </h2>
           
           <div className="grid gap-4">
-            {q.options.map((opt, idx) => (
-              <button
-                key={idx}
+            {q.options.map((opt, i) => (
+              <button 
+                key={i}
                 onClick={() => handleAnswer(opt)}
-                className="p-4 text-left rounded-xl bg-slate-700/50 hover:bg-indigo-600 border border-white/5 hover:border-indigo-400 transition-all group"
+                className="text-left p-5 rounded-xl bg-slate-700/50 border border-white/5 hover:bg-indigo-600 hover:border-indigo-400 transition-all font-medium flex items-center gap-4 group"
               >
-                <div className="flex items-center gap-4">
-                  <span className="bg-slate-800 group-hover:bg-indigo-500 w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold">
-                    {['A', 'B', 'C', 'D'][idx]}
-                  </span>
-                  <span className="font-medium">{decodeHTML(opt)}</span>
+                <div className="w-8 h-8 rounded-full bg-slate-800 group-hover:bg-white group-hover:text-indigo-600 flex items-center justify-center font-bold text-sm transition-colors">
+                  {["A","B","C","D"][i]}
                 </div>
+                {opt}
               </button>
             ))}
           </div>
-        </div>
-
-        <div className="mt-6 flex justify-between text-slate-500 text-sm">
-          <span>Question {currentQ + 1} of {questions.length}</span>
-          <span>Score: {score}</span>
         </div>
       </div>
     </div>

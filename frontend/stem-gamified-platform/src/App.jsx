@@ -3,22 +3,27 @@ import Dashboard from './pages/Dashboard';
 import Career from './pages/Career';
 import Quiz from './pages/Quiz';
 import Leaderboard from './pages/Leaderboard';
+import QuizSetup from './pages/QuizSetup'; // Import the new page
 import ProfileSetup from './pages/ProfileSetup';
+import Login from './pages/Login';
 
 function App() {
   return (
-    // ❌ REMOVED: <div className="min-h-screen bg-slate-900">
-    // ❌ REMOVED: <div className="container mx-auto">
-    
-    // ✅ NEW: Just the Routes. 
-    // This lets "ProfileSetup" take up the full screen with its own white background.
-    <Routes>
-        <Route path="/" element={<ProfileSetup />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/career" element={<Career />} />
-        <Route path="/quiz" element={<Quiz />} />
-        <Route path="/leaderboard" element={<Leaderboard />} />
-    </Routes>
+    <div className="min-h-screen bg-slate-900">
+      <div className="container mx-auto">
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          
+          {/* Default Route: Redirect to Login if accessed directly */}
+          <Route path="/" element={<ProfileSetup />} /> 
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/career" element={<Career />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/quiz-setup" element={<QuizSetup />} />
+          <Route path="/quiz" element={<Quiz />} />
+        </Routes>
+      </div>
+    </div>
   );
 }
 

@@ -93,10 +93,6 @@ export default function Dashboard() {
               <button className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white px-5 py-2 rounded-full font-bold text-sm transition border border-red-100">Log Out</button>
             </SignOutButton>
           </div>
-
-          {/* Decorative Background Circles */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -mr-16 -mt-16 pointer-events-none"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white opacity-5 rounded-full -ml-10 -mb-10 pointer-events-none"></div>
         </div>
       </nav>
 
@@ -204,7 +200,6 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-
         </div>
       </div>
 
