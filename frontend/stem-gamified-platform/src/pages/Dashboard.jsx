@@ -57,7 +57,7 @@ export default function Dashboard() {
             
             <div className="grid grid-cols-2 gap-4">
               <button 
-                onClick={() => navigate('/quiz')}
+                onClick={() => navigate('/quiz-setup')}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-lg font-bold shadow-lg transition transform hover:scale-105"
               >
                 🎮 Start Quiz

@@ -4,6 +4,8 @@ import Dashboard from './pages/Dashboard';
 import Career from './pages/Career';
 import Quiz from './pages/Quiz';
 import Leaderboard from './pages/Leaderboard';
+import QuizSetup from './pages/QuizSetup'; // Import the new page
+
 
 function App() {
   return (
@@ -17,8 +19,9 @@ function App() {
           
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/career" element={<Career />} />
-          <Route path="/quiz" element={<Quiz />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/quiz-setup" element={<QuizSetup />} />
+          <Route path="/quiz" element={<Quiz />} />
         </Routes>
       </div>
     </div>
