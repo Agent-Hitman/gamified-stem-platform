@@ -6,6 +6,9 @@ import Leaderboard from './pages/Leaderboard';
 import QuizSetup from './pages/QuizSetup'; // Import the new page
 import ProfileSetup from './pages/ProfileSetup';
 import Login from './pages/Login';
+import Profile from './pages/Profile';
+import QuizHistory from './pages/QuizHistory';
+import Friends from './pages/Friends';
 
 function App() {
   return (
@@ -19,8 +22,11 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/career" element={<Career />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
-          <Route path="/quiz-setup" element={<QuizSetup />} />
+          <Route path="/QuizSetup" element={<QuizSetup />} />
           <Route path="/quiz" element={<Quiz />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/history" element={<QuizHistory />} />
+          <Route path="/friends" element={<Friends />} />
         </Routes>
       </div>
     </div>
