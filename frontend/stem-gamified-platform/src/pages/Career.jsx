@@ -37,6 +37,7 @@ export default function Career() {
     try {
       const history = JSON.parse(localStorage.getItem('quizHistory') || '[]');
 
+      // Use the live backend URL here (make sure port is correct)
       const res = await fetch("http://127.0.0.1:8000/api/analyze-skill", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -151,7 +152,7 @@ export default function Career() {
             
             <h2 className="text-purple-200 uppercase tracking-[0.3em] text-xs font-bold mb-4">Your Professional Archetype</h2>
             <h3 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-yellow-500 mb-6 drop-shadow-sm">
-              {skillProfile.profile.archetype}
+              {skillProfile.profile.archetype || "The Innovator"}
             </h3>
             <p className="text-xl md:text-2xl text-slate-200 max-w-3xl mx-auto font-medium leading-relaxed italic">
               "{skillProfile.profile.summary}"
@@ -173,7 +174,8 @@ export default function Career() {
                     </div>
                     <p className="text-slate-400 text-sm mb-4 leading-relaxed">{career.reason}</p>
                     <div className="text-xs text-slate-500 font-mono font-bold uppercase tracking-wider">
-                      🎓 Major: <span className="text-indigo-400">{career.degree}</span>
+                      {/* FIXED: Changed from career.degree to career.major */}
+                      🎓 Major: <span className="text-indigo-400">{career.major || career.degree || "Not Specified"}</span>
                     </div>
                   </div>
                 ))}
@@ -199,7 +201,7 @@ export default function Career() {
                       {/* Dot */}
                       <div className="absolute left-2 top-1.5 w-4 h-4 bg-slate-800 rounded-full border-2 border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)] group-hover:bg-purple-500 transition-colors"></div>
                       
-                      {/* Title Handling */}
+                      {/* Title Handling (If API sends string, we auto-number it) */}
                       <h4 className="font-bold text-lg text-slate-200 mb-2">
                         {step.title || `Step ${idx + 1}`}
                       </h4>
@@ -207,7 +209,8 @@ export default function Career() {
                       {/* Description Handling */}
                       <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
                         <p className="text-slate-400 text-sm leading-relaxed">
-                            {step.description || (typeof step === 'string' ? step : "Check description.")}
+                            {/* Logic: If it's just a text string, display it. If it's an object, show description. */}
+                            {typeof step === 'string' ? step : step.description}
                         </p>
                       </div>
                     </div>
