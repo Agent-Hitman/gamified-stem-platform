@@ -12,7 +12,7 @@ export default function QuizHistory() {
 
   useEffect(() => {
     if (user) {
-      fetch(`http://127.0.0.1:8000/api/history/${user.id}`)
+      fetch(`https://stem-pulse.onrender.com/api/history/${user.id}`)
         .then(res => res.json())
         .then(data => {
             setHistory(data);

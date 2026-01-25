@@ -202,7 +202,7 @@ def update_profile(req: UpdateProfileRequest):
 # --- B. AI FEATURES (GROQ) ---
 @app.post("/api/generate-quiz")
 def generate_quiz(req: QuizRequest):
-    # Backup now has a placeholder, you can expand this if needed
+    # Backup placeholder
     BACKUP = [{"id": 0, "question": "Force unit?", "options": ["N","J","W","Pa"], "correctAnswer":"N", "topic":req.topic, "difficulty":req.difficulty}]
     
     if not groq_client: return BACKUP
@@ -210,7 +210,9 @@ def generate_quiz(req: QuizRequest):
     try:
         # 1. Determine User Grade
         user_grade = "10th Grade"
-        if req.userId and users_collection: 
+        
+        # --- FIX IS HERE: Explicitly check 'is not None' ---
+        if req.userId and users_collection is not None: 
             u = users_collection.find_one({"userId": req.userId})
             if u: user_grade = u.get("grade", "10th Grade")
         
@@ -221,7 +223,7 @@ def generate_quiz(req: QuizRequest):
         elif user_grade == "Undergraduate":
             exam_instruction = "Include real Previous Year Questions (PYQs) from GATE exam where applicable."
         
-        # 3. Construct Prompt with new 10 Question Limit
+        # 3. Construct Prompt
         prompt = f"""
         Create 10 multiple-choice questions about "{req.topic}".
         Target Audience: {user_grade} student. Difficulty: {req.difficulty}.
