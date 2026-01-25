@@ -211,20 +211,19 @@ def update_profile(req: UpdateProfileRequest):
 # --- B. AI FEATURES (GROQ) ---
 @app.post("/api/generate-quiz")
 def generate_quiz(req: QuizRequest):
-    # Default Backup
+    # Default Backup (in case AI fails entirely)
     BACKUP = [{"id": 0, "question": "Error generating quiz. Try again?", "options": ["Reload"], "correctAnswer": "Reload", "topic": req.topic, "difficulty": req.difficulty}]
     
     if not groq_client: return BACKUP
     
     try:
         # 1. Fetch User Grade from DB
-        user_grade = "12th Grade" # Default
+        user_grade = "12th Grade" # Default fallback
         if req.userId and users_collection is not None:
             u = users_collection.find_one({"userId": req.userId})
             if u: user_grade = u.get("grade", "12th Grade")
 
         # 2. Define "Reference Material" based on Grade
-        # This tells the AI *where* to look mentally for questions.
         reference_context = ""
         
         if user_grade in ["11th Grade", "12th Grade"]:
@@ -237,7 +236,7 @@ def generate_quiz(req: QuizRequest):
                 "Source questions from standard engineering textbooks (e.g., 'Cengel' for Thermodynamics, 'Sadiku' for Electronics). "
                 "Include questions similar to GATE or IES exam standards. Focus on engineering application."
             )
-        else: # 9th, 10th, etc.
+        else: # 9th, 10th
             reference_context = (
                 "Source questions from standard CBSE/ICSE curriculum textbooks. "
                 "Focus on conceptual understanding and foundational logic."
@@ -250,6 +249,7 @@ def generate_quiz(req: QuizRequest):
         TOPIC: {req.topic}
         TARGET AUDIENCE: {user_grade}
         DIFFICULTY: {req.difficulty}
+        QUANTITY: Create exactly 10 distinct multiple-choice questions.
         
         SOURCE MATERIAL INSTRUCTIONS:
         {reference_context}
@@ -261,13 +261,14 @@ def generate_quiz(req: QuizRequest):
         - Questions must be unique and non-repetitive.
         
         STRICT OUTPUT FORMAT:
-        Return ONLY a raw JSON Array. No Markdown, no explanations.
+        Return ONLY a raw JSON Array. No Markdown, no explanations, no intro text.
         [
           {{
             "question": "Question text here...",
             "options": ["Option A", "Option B", "Option C", "Option D"],
             "correctAnswer": "Option B"
-          }}
+          }},
+          ... (repeat for 10 questions)
         ]
         """
         
@@ -275,7 +276,8 @@ def generate_quiz(req: QuizRequest):
         chat = groq_client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
             model="llama-3.3-70b-versatile",
-            temperature=0.6 # Slightly higher creativity for unique questions
+            temperature=0.6,
+            max_tokens=2048  # <--- Increased to ensure room for 10 questions
         )
         
         # 5. Parse JSON
@@ -305,7 +307,10 @@ def generate_quiz(req: QuizRequest):
 
     except Exception as e:
         print(f"Quiz Error: {e}")
+        # Return backup if something explodes
         return BACKUP
+
+
 @app.post("/api/analyze-skill")
 def analyze_skill(req: SkillAnalysisRequest):
     BACKUP = {"source":"backup", "profile":{"summary":"AI Unavailable"},"careers":[],"roadmap":[]}
