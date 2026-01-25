@@ -78,10 +78,10 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,             # List of allowed websites
-    allow_credentials=True,            # Allow cookies/auth headers
-    allow_methods=["*"],               # Allow all methods (POST, GET, etc.)
-    allow_headers=["*"],               # Allow all headers
+    allow_origins=["*"],  # 👈 Allow ALL temporarily to test
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # --- 4. DATA MODELS (Schemas) ---
