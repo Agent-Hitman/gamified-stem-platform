@@ -68,11 +68,20 @@ else:
 
 # --- 3. FASTAPI APP ---
 app = FastAPI()
+
+# --- CORS CONFIGURATION (THE FIX) ---
+origins = [
+    "http://localhost:5173",                 # For local testing
+    "http://localhost:3000",                 # For local testing
+    "https://gamified-stem-platform.vercel.app"  # 👈 YOUR VERCEL FRONTEND URL
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=origins,             # List of allowed websites
+    allow_credentials=True,            # Allow cookies/auth headers
+    allow_methods=["*"],               # Allow all methods (POST, GET, etc.)
+    allow_headers=["*"],               # Allow all headers
 )
 
 # --- 4. DATA MODELS (Schemas) ---
