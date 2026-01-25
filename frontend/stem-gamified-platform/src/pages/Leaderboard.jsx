@@ -11,7 +11,7 @@ export default function Leaderboard() {
   useEffect(() => {
     const queryParam = user ? `?current_user_id=${user.id}` : "";
     
-    fetch(`http://127.0.0.1:8000/api/leaderboard${queryParam}`)
+    fetch(`https://stem-pulse.onrender.com/api/leaderboard${queryParam}`)
       .then(res => res.json())
       .then(data => {
         setLeaders(data);

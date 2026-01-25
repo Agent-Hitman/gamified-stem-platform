@@ -18,7 +18,7 @@ export default function Career() {
   useEffect(() => {
     if (user) {
       // Fetch user profile to get the stored grade
-      fetch(`http://127.0.0.1:8000/api/user/${user.id}`)
+      fetch(`https://stem-pulse.onrender.com/api/user/${user.id}`)
         .then(res => res.json())
         .then(data => {
           // If the user has a grade saved, set it. Otherwise keep default.
@@ -38,7 +38,7 @@ export default function Career() {
       const history = JSON.parse(localStorage.getItem('quizHistory') || '[]');
 
       // Use the live backend URL here (make sure port is correct)
-      const res = await fetch("http://127.0.0.1:8000/api/analyze-skill", {
+      const res = await fetch("https://stem-pulse.onrender.com/api/analyze-skill", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

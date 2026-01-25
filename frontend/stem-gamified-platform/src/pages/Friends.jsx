@@ -21,7 +21,7 @@ export default function Friends() {
   }, [user]);
 
   const fetchFriends = () => {
-    fetch(`http://127.0.0.1:8000/api/friends/${user.id}`)
+    fetch(`https://stem-pulse.onrender.com/api/friends/${user.id}`)
       .then(res => res.json())
       .then(data => {
         setFriends(data);
@@ -35,7 +35,7 @@ export default function Friends() {
     const timer = setTimeout(() => {
         if (query.length > 0) {
             setIsSearching(true);
-            fetch(`http://127.0.0.1:8000/api/search-users?q=${query}`)
+            fetch(`https://stem-pulse.onrender.com/api/search-users?q=${query}`)
                 .then(res => res.json())
                 .then(data => {
                     const filtered = data.filter(u => u.userId !== user.id && !friends.some(f => f.userId === u.userId));
@@ -53,7 +53,7 @@ export default function Friends() {
   // 3. Add Friend
   const handleAddFriend = async (friendId) => {
     try {
-        const res = await fetch('http://127.0.0.1:8000/api/add-friend', {
+        const res = await fetch('https://stem-pulse.onrender.com/api/add-friend', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: user.id, friendId: friendId })
@@ -73,7 +73,7 @@ export default function Friends() {
     if (!window.confirm("Are you sure you want to remove this friend?")) return;
 
     try {
-        const res = await fetch('http://127.0.0.1:8000/api/remove-friend', {
+        const res = await fetch('https://stem-pulse.onrender.com/api/remove-friend', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: user.id, friendId: friendId })

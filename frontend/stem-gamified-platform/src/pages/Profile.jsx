@@ -21,7 +21,7 @@ export default function Profile() {
       // Set email immediately from Clerk (it's the source of truth)
       const email = user.primaryEmailAddress?.emailAddress || "";
       
-      fetch(`http://127.0.0.1:8000/api/user/${user.id}`)
+      fetch(`https://stem-pulse.onrender.com/api/user/${user.id}`)
         .then(res => res.json())
         .then(data => {
             setFormData({
@@ -44,7 +44,7 @@ export default function Profile() {
     setMessage("");
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/update-profile', {
+      const res = await fetch('https://stem-pulse.onrender.com/api/update-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

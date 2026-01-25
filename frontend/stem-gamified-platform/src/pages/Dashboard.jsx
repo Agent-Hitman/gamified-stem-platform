@@ -37,7 +37,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (user) {
       // 1. Login & Send User Details (Email/Name)
-      fetch('http://127.0.0.1:8000/api/daily-login', {
+      fetch('https://stem-pulse.onrender.com/api/daily-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -49,14 +49,14 @@ export default function Dashboard() {
       .then(res => res.json())
       .then(loginData => {
           // No redirect needed anymore!
-          return fetch(`http://127.0.0.1:8000/api/user/${user.id}`);
+          return fetch(`https://stem-pulse.onrender.com/api/user/${user.id}`);
       })
       .then(res => res.json())
       .then(data => {
           if (!data) return;
           
           // 2. Fetch History for Accuracy
-          fetch(`http://127.0.0.1:8000/api/history/${user.id}`)
+          fetch(`https://stem-pulse.onrender.com/api/history/${user.id}`)
             .then(res => res.json())
             .then(history => {
                 let totalCorrect = 0;

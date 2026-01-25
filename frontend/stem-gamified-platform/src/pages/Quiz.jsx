@@ -61,7 +61,7 @@ export default function Quiz() {
       setFinalScore(0);
 
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/generate-quiz", {
+        const res = await fetch("https://stem-pulse.onrender.com/api/generate-quiz", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ topic, difficulty, userId: user.id })
@@ -154,7 +154,7 @@ export default function Quiz() {
 
     // --- SEND DETAILED DATA TO BACKEND ---
     if (user) {
-        await fetch('http://127.0.0.1:8000/api/save-score', {
+        await fetch('https://stem-pulse.onrender.com/api/save-score', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

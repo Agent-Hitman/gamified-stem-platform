@@ -40,7 +40,7 @@ export default function ProfileSetup() {
     // 2. SEND TO BACKEND (Initialize DB Entry)
     if (user) {
         try {
-            await fetch('http://127.0.0.1:8000/api/init-user', {
+            await fetch('https://stem-pulse.onrender.com/api/init-user', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
