@@ -4,7 +4,7 @@ import { useUser } from "@clerk/clerk-react";
 
 // --- 1. CONFIG: API URL ---
 // Change this to your live backend URL
-const API_BASE_URL = "https://stem-platform-api.onrender.com"; 
+const API_BASE_URL = "https://stem-pulse.onrender.com"; 
 
 // --- 2. HELPERS ---
 
