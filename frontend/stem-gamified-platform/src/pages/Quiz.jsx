@@ -2,17 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from "@clerk/clerk-react"; 
 
-// HELPER: Normalizes text (removes spaces/case)
+// --- 1. CONFIG: API URL ---
+// Change this to your live backend URL
+const API_BASE_URL = "https://stem-platform-api.onrender.com"; 
+
+// --- 2. HELPERS ---
+
+// Helper: Normalizes text (removes spaces/case)
 const normalizeText = (text) => {
   if (!text) return "";
-  // Handle case where answer is a number
   const str = String(text);
+  // Decode HTML entities if needed
   const txt = document.createElement('textarea');
   txt.innerHTML = str; 
   return txt.value.trim().toLowerCase();
 };
 
-// HELPER: Smart Answer Checker (Handles "A" vs "Option Text")
+// Helper: Smart Answer Checker (Handles "A" vs "Option Text")
 const isAnswerCorrect = (userAns, correctAns, allOptions) => {
     const u = normalizeText(userAns);
     const c = normalizeText(correctAns);
@@ -28,6 +34,15 @@ const isAnswerCorrect = (userAns, correctAns, allOptions) => {
     }
 
     return false;
+};
+
+// Helper: Convert "A" -> "Actual Answer Text" (FIX FOR HISTORY)
+const getAnswerText = (answerKey, options) => {
+  if (!options) return answerKey;
+  const letterIndex = ["A", "B", "C", "D"].indexOf(answerKey);
+  // If it is a letter (A-D), return the corresponding text option.
+  // If it is NOT a letter (already text), return it as is.
+  return (letterIndex !== -1 && options[letterIndex]) ? options[letterIndex] : answerKey;
 };
 
 export default function Quiz() {
@@ -49,19 +64,20 @@ export default function Quiz() {
   // DEFINE XP
   const xpPerQuestion = difficulty === "Hard" ? 80 : difficulty === "Medium" ? 50 : 30;
 
-  // 1. FETCH
+  // --- 3. FETCH QUESTIONS ---
   useEffect(() => {
     const fetchQuestions = async () => {
       if (!user) return; 
       setLoading(true);
-      // RESET STATE for "Play Again"
+      
+      // RESET STATE
       setCurrentQ(0);
       setUserAnswers({});
       setShowResult(false);
       setFinalScore(0);
 
       try {
-        const res = await fetch("https://stem-pulse.onrender.com/api/generate-quiz", {
+        const res = await fetch(`${API_BASE_URL}/api/generate-quiz`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ topic, difficulty, userId: user.id })
@@ -71,6 +87,7 @@ export default function Quiz() {
         const data = await res.json();
         setQuestions(data);
         
+        // Dynamic Time Limit
         let timePerQuestion = 60; 
         if (difficulty === "Medium") timePerQuestion = 150;
         if (difficulty === "Hard") timePerQuestion = 270;
@@ -86,9 +103,9 @@ export default function Quiz() {
       }
     };
     fetchQuestions();
-  }, [topic, difficulty, user]); // Re-runs if these change (or on mount)
+  }, [topic, difficulty, user]);
 
-  // 2. TIMER
+  // --- 4. TIMER LOGIC ---
   useEffect(() => {
     if (totalTime > 0 && !showResult && !loading) {
       const interval = setInterval(() => {
@@ -121,7 +138,7 @@ export default function Quiz() {
     if (currentQ > 0) setCurrentQ(currentQ - 1);
   };
 
-  // 3. SUBMIT (UPDATED TO SEND HISTORY)
+  // --- 5. SUBMIT & SAVE SCORE ---
   const handleSubmit = async () => {
     let calculatedScore = 0;
     const historyLog = [];
@@ -129,17 +146,18 @@ export default function Quiz() {
     questions.forEach((q, index) => {
       const userChoice = userAnswers[index];
       
-      // USE SMART MATCHER
+      // Calculate Score
       const isCorrect = isAnswerCorrect(userChoice, q.correctAnswer, q.options);
-      
       if (isCorrect) {
         calculatedScore += xpPerQuestion;
       }
 
+      // --- CRITICAL FIX FOR HISTORY ---
+      // Convert "A" -> "Joules" before saving to DB
       historyLog.push({
         question: q.question,
-        userAnswer: userChoice || "Skipped", // Handle empty answers
-        correctAnswer: q.correctAnswer,
+        userAnswer: getAnswerText(userChoice, q.options) || "Skipped", 
+        correctAnswer: getAnswerText(q.correctAnswer, q.options),
         isCorrect: isCorrect,
         topic: topic
       });
@@ -148,25 +166,29 @@ export default function Quiz() {
     setFinalScore(calculatedScore);
     setShowResult(true);
 
-    // Optional: Keep local storage backup
+    // Save to Local Storage (Optional Backup)
     const existingData = JSON.parse(localStorage.getItem('quizHistory') || '[]');
     localStorage.setItem('quizHistory', JSON.stringify([...existingData, ...historyLog]));
 
-    // --- SEND DETAILED DATA TO BACKEND ---
+    // Send to Backend
     if (user) {
-        await fetch('https://stem-pulse.onrender.com/api/save-score', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                userId: user.id,
-                username: user.fullName || user.firstName,
-                email: user.primaryEmailAddress?.emailAddress,
-                score: calculatedScore, 
-                topic: topic,
-                difficulty: difficulty, // Send difficulty
-                details: historyLog // <--- CRITICAL: Sending Q&A analysis
-            }),
-        });
+        try {
+            await fetch(`${API_BASE_URL}/api/save-score`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: user.id,
+                    username: user.fullName || user.firstName,
+                    email: user.primaryEmailAddress?.emailAddress,
+                    score: calculatedScore, 
+                    topic: topic,
+                    difficulty: difficulty,
+                    details: historyLog // Sending the fixed text answers
+                }),
+            });
+        } catch (error) {
+            console.error("Failed to save score:", error);
+        }
     }
   };
 
@@ -208,10 +230,10 @@ export default function Quiz() {
           </span>
         </div>
         <div className="text-right flex items-center gap-3">
-           <div className="text-xs text-slate-500 font-bold uppercase tracking-widest">Time Remaining</div>
-           <div className={`text-xl font-mono font-bold ${totalTime < 60 ? 'text-red-500 animate-pulse' : 'text-indigo-400'}`}>
-             {formatTime(totalTime)}
-           </div>
+            <div className="text-xs text-slate-500 font-bold uppercase tracking-widest">Time Remaining</div>
+            <div className={`text-xl font-mono font-bold ${totalTime < 60 ? 'text-red-500 animate-pulse' : 'text-indigo-400'}`}>
+              {formatTime(totalTime)}
+            </div>
         </div>
       </div>
 
