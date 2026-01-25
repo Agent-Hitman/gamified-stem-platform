@@ -211,52 +211,79 @@ def update_profile(req: UpdateProfileRequest):
 # --- B. AI FEATURES (GROQ) ---
 @app.post("/api/generate-quiz")
 def generate_quiz(req: QuizRequest):
-    # Backup placeholder
-    BACKUP = [{"id": 0, "question": "Force unit?", "options": ["N","J","W","Pa"], "correctAnswer":"N", "topic":req.topic, "difficulty":req.difficulty}]
+    # Default Backup
+    BACKUP = [{"id": 0, "question": "Error generating quiz. Try again?", "options": ["Reload"], "correctAnswer": "Reload", "topic": req.topic, "difficulty": req.difficulty}]
     
     if not groq_client: return BACKUP
     
     try:
-        # 1. Determine User Grade
-        user_grade = "10th Grade"
-        
-        # --- FIX IS HERE: Explicitly check 'is not None' ---
-        if req.userId and users_collection is not None: 
+        # 1. Fetch User Grade from DB
+        user_grade = "12th Grade" # Default
+        if req.userId and users_collection is not None:
             u = users_collection.find_one({"userId": req.userId})
-            if u: user_grade = u.get("grade", "10th Grade")
+            if u: user_grade = u.get("grade", "12th Grade")
+
+        # 2. Define "Reference Material" based on Grade
+        # This tells the AI *where* to look mentally for questions.
+        reference_context = ""
         
-        # 2. Set Exam Context based on Grade
-        exam_instruction = ""
         if user_grade in ["11th Grade", "12th Grade"]:
-            exam_instruction = "Include real Previous Year Questions (PYQs) from JEE Mains and JEE Advanced where applicable."
+            reference_context = (
+                "Source inspiration from standard competitive books like 'H.C. Verma' (Physics), 'R.D. Sharma' (Maths), or 'NCERT' (Chemistry). "
+                "Include questions similar to JEE Mains or NEET Previous Year Questions (PYQs)."
+            )
         elif user_grade == "Undergraduate":
-            exam_instruction = "Include real Previous Year Questions (PYQs) from GATE exam where applicable."
-        
-        # 3. Construct Prompt
+            reference_context = (
+                "Source questions from standard engineering textbooks (e.g., 'Cengel' for Thermodynamics, 'Sadiku' for Electronics). "
+                "Include questions similar to GATE or IES exam standards. Focus on engineering application."
+            )
+        else: # 9th, 10th, etc.
+            reference_context = (
+                "Source questions from standard CBSE/ICSE curriculum textbooks. "
+                "Focus on conceptual understanding and foundational logic."
+            )
+
+        # 3. Construct the Advanced Prompt
         prompt = f"""
-        Create 10 multiple-choice questions about "{req.topic}".
-        Target Audience: {user_grade} student. Difficulty: {req.difficulty}.
+        Act as a strict academic examiner. Create a strictly formatted JSON quiz.
         
-        INSTRUCTIONS:
-        {exam_instruction}
-        If the topic is general, ensure standard academic rigor suitable for {user_grade}.
+        TOPIC: {req.topic}
+        TARGET AUDIENCE: {user_grade}
+        DIFFICULTY: {req.difficulty}
         
-        STRICT RULES:
-        1. Return ONLY a JSON Array.
-        2. No Markdown, no explanation, no ```json tags.
-        3. Format: [{{ "question": "...", "options": ["A","B","C","D"], "correctAnswer": "A" }}]
+        SOURCE MATERIAL INSTRUCTIONS:
+        {reference_context}
+        
+        QUESTION GUIDELINES:
+        - Do NOT ask simple definitions (e.g., "What is force?").
+        - Ask conceptual, numerical, or scenario-based questions.
+        - Ensure 4 distinct options.
+        - Questions must be unique and non-repetitive.
+        
+        STRICT OUTPUT FORMAT:
+        Return ONLY a raw JSON Array. No Markdown, no explanations.
+        [
+          {{
+            "question": "Question text here...",
+            "options": ["Option A", "Option B", "Option C", "Option D"],
+            "correctAnswer": "Option B"
+          }}
+        ]
         """
         
         # 4. Call AI
         chat = groq_client.chat.completions.create(
-            messages=[{"role":"user","content":prompt}], 
-            model="llama-3.3-70b-versatile", 
-            temperature=0.5
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.3-70b-versatile",
+            temperature=0.6 # Slightly higher creativity for unique questions
         )
         
-        # 5. Parse Response
+        # 5. Parse JSON
         raw = chat.choices[0].message.content.strip()
+        # Clean potential markdown wrappers
         raw = raw.replace("```json", "").replace("```", "").strip()
+        
+        # Extract Array if extra text exists
         match = re.search(r'\[.*\]', raw, re.DOTALL)
         if match: raw = match.group(0)
         
@@ -273,12 +300,12 @@ def generate_quiz(req: QuizRequest):
                 "options": q["options"],
                 "correctAnswer": q["correctAnswer"]
             })
+            
         return formatted
 
     except Exception as e:
         print(f"Quiz Error: {e}")
         return BACKUP
-
 @app.post("/api/analyze-skill")
 def analyze_skill(req: SkillAnalysisRequest):
     BACKUP = {"source":"backup", "profile":{"summary":"AI Unavailable"},"careers":[],"roadmap":[]}
